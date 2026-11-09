@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SCC Platform — карточка в портфолио</title>
+    <style>
+      :root {
+        --red: #ed131c;
+        --red-hover: #d40f18;
+        --red-soft: #fdecec;
+        --dark: #16161a;
+        --ink: #27272a;
+        --text: #52525b;
+        --muted: #8b8b93;
+        --line: #e4e4e7;
+        --line-soft: #efeff1;
+        --surface: #ffffff;
+        --canvas: #f4f4f5;
+        --green: #14803c;
+        --green-soft: #e9f7ee;
+        --purple: #7a4df0;
+        --purple-soft: #f2edff;
+        --radius: 10px;
+        --radius-s: 6px;
+        --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        --mono: "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family: var(--font);
+        font-size: 14px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .page {
+        max-width: 1140px;
+        margin: 0 auto;
+        padding: 40px 24px 64px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .topbar strong {
+        font-size: 14px;
+      }
+
+      .topbar span {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .hero {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 36px 0 28px;
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-size: 34px;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        color: var(--dark);
+      }
+
+      .hero p {
+        margin: 0;
+        max-width: 640px;
+        color: var(--text);
+      }
+
+      .eyebrow {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.11em;
+        color: var(--red);
+      }
+
+      .card {
+        display: grid;
+        grid-template-columns: 1.05fr 1fr;
+        gap: 0;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+
+      .card__media {
+        position: relative;
+        background: var(--canvas);
+        border-right: 1px solid var(--line);
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .card__media img {
+        display: block;
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-s);
+      }
+
+      .thumbs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .thumbs img {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+      }
+
+      .card__body {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .card__head {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .card__head h2 {
+        margin: 0;
+        font-size: 22px;
+        letter-spacing: -0.015em;
+        color: var(--dark);
+      }
+
+      .card__head p {
+        margin: 0;
+        color: var(--text);
+        font-size: 13px;
+      }
+
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 9px;
+        border-radius: var(--radius-s);
+        background: var(--canvas);
+        font-size: 11.5px;
+        font-weight: 500;
+        color: var(--text);
+      }
+
+      .badge--live {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .badge--accent {
+        background: var(--red-soft);
+        color: var(--red);
+      }
+
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .fact {
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-s);
+      }
+
+      .fact b {
+        display: block;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--dark);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .fact span {
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+
+      .stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .chip {
+        padding: 3px 9px;
+        border: 1px solid var(--line);
+        border-radius: 100px;
+        font-size: 11.5px;
+        color: var(--text);
+      }
+
+      .features {
+        margin: 0;
+        padding: 0 0 0 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        font-size: 13px;
+        color: var(--text);
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: auto;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-s);
+        font-size: 12.5px;
+        font-weight: 500;
+        background: var(--surface);
+      }
+
+      .button:hover {
+        border-color: var(--red);
+        color: var(--red);
+      }
+
+      .button--primary {
+        background: var(--red);
+        border-color: var(--red);
+        color: #fff;
+      }
+
+      .button--primary:hover {
+        background: var(--red-hover);
+        border-color: var(--red-hover);
+        color: #fff;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 40px 0 14px;
+      }
+
+      .section-title h2 {
+        margin: 0;
+        font-size: 16px;
+        letter-spacing: -0.01em;
+      }
+
+      .section-title span {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 12px;
+      }
+
+      .tile {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 16px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        transition: border-color 0.12s;
+      }
+
+      .tile:hover {
+        border-color: var(--red);
+      }
+
+      .tile__head {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .tile__icon {
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-s);
+        color: var(--red);
+      }
+
+      .tile__head strong {
+        font-size: 13px;
+      }
+
+      .tile p {
+        margin: 0;
+        font-size: 12.5px;
+        color: var(--text);
+      }
+
+      .tile__meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: var(--muted);
+        font-family: var(--mono);
+      }
+
+      footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 48px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      @media (max-width: 900px) {
+        .card {
+          grid-template-columns: 1fr;
+        }
+
+        .card__media {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <strong>SCC Platform · портфолио</strong>
+        <span>Go · Next.js · Electron</span>
+      </div>
+
+      <header class="hero">
+        <span class="eyebrow">Проект</span>
+        <h1>Пульт телефонии для контакт-центра МТИ</h1>
+        <p>
+          Восемь сервисов обработки вызовов на Go и оконный пульт супервизора: приём CDR, аналитика нагрузки,
+          мониторинг SIP-транков, распределение очередей, оповещения, ESL-консоль FreeSWITCH, провижининг
+          аппаратов и диагностика PostgreSQL.
+        </p>
+      </header>
+
+      <article class="card">
+        <div class="card__media">
+          <img src="../apps/desktop/screenshots/01-cdr-ingest.png" alt="Окно SCC Platform, экран CDR Ingest" />
+          <div class="thumbs">
+            <img src="../apps/desktop/screenshots/02-call-analytics.png" alt="Call Analytics" />
+            <img src="../apps/desktop/screenshots/04-queue-acd.png" alt="Queue ACD" />
+            <img src="../apps/desktop/screenshots/06-freeswitch-esl.png" alt="FreeSWITCH ESL" />
+          </div>
+        </div>
+
+        <div class="card__body">
+          <div class="card__head">
+            <div class="badges">
+              <span class="badge badge--live">desktop</span>
+              <span class="badge badge--accent">пет-проект</span>
+              <span class="badge">2026</span>
+            </div>
+            <h2>SCC Platform</h2>
+            <p>Оконное приложение на Electron поверх восьми Go-сервисов телефонии.</p>
+          </div>
+
+          <div class="facts">
+            <div class="fact"><b>8</b><span>сервисов на Go</span></div>
+            <div class="fact"><b>100%</b><span>std lib, без внешних зависимостей</span></div>
+            <div class="fact"><b>232</b><span>проверки стиля в линтере</span></div>
+            <div class="fact"><b>2</b><span>режима: live API и демо-данные</span></div>
+          </div>
+
+          <div class="stack">
+            <span class="chip">Go 1.27</span>
+            <span class="chip">PostgreSQL / TimescaleDB</span>
+            <span class="chip">SIP · WebRTC · RTP</span>
+            <span class="chip">FreeSWITCH ESL</span>
+            <span class="chip">NATS</span>
+            <span class="chip">Next.js 16</span>
+            <span class="chip">Electron</span>
+            <span class="chip">Playwright</span>
+          </div>
+
+          <ul class="features">
+            <li>Собственный SIP-клиент и ESL-протокол без сторонних библиотек</li>
+            <li>Партиционирование CDR, partial / expression / GIN индексы, разбор дедлоков</li>
+            <li>Пульт: поиск, горячие клавиши, сортировка таблиц, копирование, экспорт CSV</li>
+            <li>Скриншоты снимаются Playwright'ом из живого окна</li>
+          </ul>
+
+          <div class="actions">
+            <a class="button button--primary" href="https://github.com/kepanasyuke/scc-platform">Репозиторий</a>
+            <a class="button" href="../apps/desktop/screenshots/01-cdr-ingest.png">Скриншот</a>
+            <a class="button" href="../README.md">README</a>
+          </div>
+        </div>
+      </article>
+
+      <div class="section-title">
+        <h2>Сервисы внутри платформы</h2>
+        <span>Go · REST · порты 8101–8108</span>
+      </div>
+
+      <div class="grid">
+        <a class="tile" href="https://github.com/kepanasyuke/scc-platform/tree/main/projects/01-cdr-ingest">
+          <div class="tile__head">
+            <span class="tile__icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 3c-4.97 0-9 1.34-9 3s4.03 3 9 3 9-1.34 9-3-4.03-3-9-3Z"/><path d="M21 12c0 1.66-4.03 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/></svg></span>
+            <strong>CDR Ingest</strong>
+          </div>
+          <p>Батчевый приём детализации, дедупликация по call_id, партиции на сутки.</p>
+          <div class="tile__meta"><span>:8101</span><span>postgres</span></div>
+        </a>
+
+        <a class="tile" href="https://github.com/kepanasyuke/scc-platform/tree/main/projects/02-call-analytics">
+          <div class="tile__head">
+            <span class="tile__icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 16v-4"/><path d="M12 16V8"/><path d="M17 16v-7"/></svg></span>
+            <strong>Call Analytics</strong>
+          </div>
+          <p>ASA, p95 и SLA по очередям на continuous aggregates TimescaleDB.</p>
+          <div class="tile__meta"><span>:8102</span><span>timescale</span></div>
+        </a>
+
+        <a class="tile" href="https://github.com/kepanasyuke/scc-platform/tree/main/projects/03-sip-probe">
+          <div class="tile__head">
+            <span class="tile__icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+            <strong>SIP Probe</strong>
+          </div>
+          <p>OPTIONS-пробы по UDP/TLS, ручной разбор статус-линии и заголовков.</p>
+          <div class="tile__meta"><span>:8103</span><span>sip</span></div>
+        </a>
+
+        <a class="tile" href="https://github.com/kepanasyuke/scc-platform/tree/main/projects/04-queue-acd">
+          <div class="tile__head">
+            <span class="tile__icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg></span>
+            <strong>Queue ACD</strong>
+          </div>
+          <p>Приоритеты, навыки, выбор агента и SLA-таймеры очередей.</p>
+          <div class="tile__meta"><span>:8104</span><span>nats</span></div>
+        </a>
+
+        <a class="tile" href="https://github.com/kepanasyuke/scc-platform/tree/main/projects/05-supervisor-alerts">
+          <div class="tile__head">
+            <span class="tile__icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></span>
+            <strong>Supervisor Alerts</strong>
+          </div>
+          <p>Движок правил с порогами, уровнями и окнами тишины.</p>
+          <div class="tile__meta"><span>:8105</span><span>rules</span></div>
+        </a>
+
+        <a class="tile" href="https://github.com/kepanasyuke/scc-platform/tree/main/projects/06-freeswitch-esl">
+          <div class="tile__head">
+            <span class="tile__icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/></svg></span>
+            <strong>FreeSWITCH ESL</strong>
+          </div>
+          <p>Ручная реализация ESL: кадры, auth, api/bgapi, состояние каналов.</p>
+          <div class="tile__meta"><span>:8106</span><span>esl</span></div>
+        </a>
+
+        <a class="tile" href="https://github.com/kepanasyuke/scc-platform/tree/main/projects/07-desk-phone-provisioning">
+          <div class="tile__head">
+            <span class="tile__icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3h20v14H2z"/><path d="M8 21h8"/><path d="M12 17v4"/></svg></span>
+            <strong>Desk Phone</strong>
+          </div>
+          <p>Zero-touch провижининг: MAC, номер, XML для Yealink и Grandstream.</p>
+          <div class="tile__meta"><span>:8107</span><span>xml</span></div>
+        </a>
+
+        <a class="tile" href="https://github.com/kepanasyuke/scc-platform/tree/main/projects/08-pg-doctor">
+          <div class="tile__head">
+            <span class="tile__icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 14l4-4"/><path d="M3.5 18a9.5 9.5 0 1 1 17 0"/></svg></span>
+            <strong>PG Doctor</strong>
+          </div>
+          <p>pg_stat_statements, рекомендации индексов, разбор логов дедлоков.</p>
+          <div class="tile__meta"><span>:8108</span><span>postgres</span></div>
+        </a>
+      </div>
+
+      <footer>
+        <span>SCC Platform · Синергия · контур телефонии МТИ</span>
+        <span>github.com/kepanasyuke/scc-platform</span>
+      </footer>
+    </div>
+  </body>
+</html>
