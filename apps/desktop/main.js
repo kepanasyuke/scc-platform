@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const { spawn } = require("node:child_process");
 const { join } = require("node:path");
 const { existsSync } = require("node:fs");
+const { writeFile } = require("node:fs/promises");
 
 const ROOT = join(__dirname, "..", "..");
 
@@ -112,6 +113,12 @@ ipcMain.handle("window:toggle", () => {
   return window.isMaximized();
 });
 ipcMain.handle("window:close", () => window?.close());
+
+ipcMain.handle("export:csv", async (_event, name, content) => {
+  const target = join(app.getPath("downloads"), name);
+  await writeFile(target, content, "utf8");
+  return target;
+});
 
 ipcMain.handle("services:list", () => services.map((service) => ({ ...service, running: children.has(service.id) })));
 

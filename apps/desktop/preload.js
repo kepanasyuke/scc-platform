@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("scc", {
   ports: () => ipcRenderer.invoke("config:ports"),
+  export: { csv: (name, content) => ipcRenderer.invoke("export:csv", name, content) },
   window: {
     minimize: () => ipcRenderer.invoke("window:minimize"),
     toggle: () => ipcRenderer.invoke("window:toggle"),

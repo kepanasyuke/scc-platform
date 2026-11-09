@@ -29,6 +29,7 @@
     <div class="workspace">
       <aside class="sidebar">
         <div class="sidebar__caption">сервисы</div>
+        <input id="search" class="search" type="search" placeholder="Поиск · 1–8" autocomplete="off" />
         <nav id="nav" class="nav"></nav>
         <div class="sidebar__foot">
           <button id="start-all" class="button button--brand">Запустить все</button>
@@ -37,6 +38,17 @@
       </aside>
 
       <main class="main">
+        <div class="banner" id="banner" hidden>
+          <div class="banner__text">
+            <strong>Сервис не отвечает</strong>
+            <span>Показаны демо-данные. Поднимите бэкенд — экран переключится в live.</span>
+          </div>
+          <div class="banner__actions">
+            <button class="button button--brand" data-start-service>Запустить сервис</button>
+            <button class="button" data-dismiss-banner>Скрыть</button>
+          </div>
+        </div>
+
         <header class="page-head">
           <div>
             <div class="page-head__eyebrow" id="eyebrow">SCC Platform</div>
@@ -46,7 +58,7 @@
           <div class="page-head__aside">
             <span class="pill" id="mode-pill">демо</span>
             <span class="pill pill--ghost" id="port-pill">:0000</span>
-            <button id="refresh" class="button">Обновить</button>
+            <button id="refresh" class="button" title="Ctrl+R">Обновить</button>
           </div>
         </header>
 
@@ -56,7 +68,10 @@
           <div class="panel">
             <div class="panel__head">
               <h2 id="table-title">Показатели</h2>
-              <span class="panel__hint" id="table-hint"></span>
+              <div class="panel__tools">
+                <span class="panel__hint" id="table-hint"></span>
+                <button id="export" class="button button--compact" title="Скачать CSV">CSV</button>
+              </div>
             </div>
             <div class="panel__body" id="table"></div>
           </div>
@@ -74,6 +89,8 @@
         </footer>
       </main>
     </div>
+
+    <div class="toast" id="toast" hidden></div>
 
     <script src="app.js"></script>
   </body>

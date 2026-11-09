@@ -1,8 +1,25 @@
 const state = {
   active: "cdr-ingest",
   live: false,
-  timer: null
+  timer: null,
+  filter: "",
+  sort: { index: -1, dir: 1 },
+  table: null
 };
+
+function showToast(message) {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.hidden = false;
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => {
+    toast.hidden = true;
+  }, 2200);
+}
+
+function stripped(html) {
+  return String(html).replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+}
 
 const PORTS = {
   "cdr-ingest": 8101,
@@ -409,14 +426,19 @@ const SERVICES = [
 
 function renderNav(activeId) {
   const nav = document.getElementById("nav");
-  nav.innerHTML = SERVICES.map(
-    (service) => `
+  const visible = SERVICES.filter((service) => service.title.toLowerCase().includes(state.filter));
+  nav.innerHTML = visible.length
+    ? visible
+        .map(
+          (service) => `
       <button class="nav__item ${service.id === activeId ? "nav__item--active" : ""}" data-id="${service.id}">
         <span class="nav__dot" data-dot="${service.id}"></span>
         <span>${service.title}</span>
         <span class="nav__num">${service.num}</span>
       </button>`
-  ).join("");
+        )
+        .join("")
+    : `<div class="nav__empty">Ничего не нашлось</div>`;
   nav.querySelectorAll(".nav__item").forEach((button) => {
     button.addEventListener("click", () => select(button.dataset.id));
   });
@@ -435,19 +457,98 @@ function renderKpis(items) {
     .join("");
 }
 
+function renderSkeleton() {
+  document.getElementById("kpis").innerHTML = Array.from(
+    { length: 6 },
+    () =>
+      `<article class="kpi kpi--skeleton">
+         <span class="skeleton" style="width:45%"></span>
+         <span class="skeleton skeleton--big"></span>
+         <span class="skeleton" style="width:65%"></span>
+       </article>`
+  ).join("");
+  document.getElementById("side").innerHTML = "";
+  document.getElementById("table").innerHTML = Array.from(
+    { length: 5 },
+    () => `<div class="skeleton skeleton-row"></div>`
+  ).join("");
+}
+
+function numeric(cell) {
+  const value = Number(stripped(cell).replace(/\s/g, "").replace(",", "."));
+  return Number.isNaN(value) ? null : value;
+}
+
+function sortedRows(rows) {
+  const { index, dir } = state.sort;
+  if (index < 0) return rows;
+  return rows
+    .map((cells) => cells.slice())
+    .sort((left, right) => {
+      const a = numeric(left[index]);
+      const b = numeric(right[index]);
+      const first = a === null ? stripped(left[index] ?? "") : a;
+      const second = b === null ? stripped(right[index] ?? "") : b;
+      const result = typeof first === "number" && typeof second === "number"
+        ? first - second
+        : String(first).localeCompare(String(second), "ru");
+      return result * dir;
+    });
+}
+
+function cellClass(cell) {
+  return /class="mono"/.test(cell) ? "copyable" : "";
+}
+
 function renderTable(table) {
+  state.table = table;
   document.getElementById("table-title").textContent = table.title;
   document.getElementById("table-hint").textContent = table.hint ?? "";
-  const rows = table.rows.length
-    ? table.rows
-        .map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>`)
-        .join("")
-    : `<tr><td colspan="${table.columns.length}"><div class="empty">Нет данных за выбранный период</div></td></tr>`;
-  document.getElementById("table").innerHTML = `
-    <table>
-      <thead><tr>${table.columns.map((column) => `<th>${column}</th>`).join("")}</tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
+  const container = document.getElementById("table");
+  if (!table.rows.length) {
+    container.innerHTML = `<div class="empty"><span>Нет данных за выбранный период</span></div>`;
+    return;
+  }
+  const head = table.columns
+    .map((column, index) => {
+      const active = state.sort.index === index;
+      const dir = active ? (state.sort.dir > 0 ? `data-dir="asc"` : `data-dir="desc"`) : "";
+      return `<th class="sortable" data-index="${index}" ${dir}>${column}</th>`;
+    })
+    .join("");
+  const body = sortedRows(table.rows)
+    .map((cells) => `<tr>${cells.map((cell) => `<td class="${cellClass(cell)}">${cell}</td>`).join("")}</tr>`)
+    .join("");
+  container.innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  container.querySelectorAll("th.sortable").forEach((header) => {
+    header.addEventListener("click", () => {
+      const index = Number(header.dataset.index);
+      state.sort = { index, dir: state.sort.index === index ? -state.sort.dir : 1 };
+      renderTable(table);
+    });
+  });
+  container.querySelectorAll("td.copyable").forEach((cell) => {
+    cell.title = "Скопировать значение";
+    cell.addEventListener("click", () => copyText(stripped(cell.innerHTML)));
+  });
+}
+
+async function copyText(value) {
+  try {
+    await navigator.clipboard.writeText(value);
+    showToast(`Скопировано: ${value}`);
+  } catch {
+    showToast(`Не удалось скопировать: ${value}`);
+  }
+}
+
+function exportCsv() {
+  const table = state.table;
+  if (!table) return;
+  const lines = [table.columns.join(";")];
+  sortedRows(table.rows).forEach((cells) => lines.push(cells.map((cell) => `"${stripped(cell).replace(/"/g, '""')}"`).join(";")));
+  const name = `${state.active}-${new Date().toISOString().slice(0, 10)}.csv`;
+  window.scc?.export?.csv(name, lines.join("\n")).then((path) => showToast(path ? `CSV: ${path}` : "Экспорт недоступен"));
 }
 
 function renderSide(blocks, bars) {
@@ -488,6 +589,9 @@ function setMode(live, service) {
     : `${service.title} · демо-данные`;
   const navDot = document.querySelector(`[data-dot="${service.id}"]`);
   if (navDot) navDot.className = `nav__dot ${live ? "nav__dot--ok" : ""}`;
+  const banner = document.getElementById("banner");
+  banner.hidden = live;
+  banner.querySelector("[data-start-service]").dataset.service = service.id;
 }
 
 async function select(id) {
@@ -497,6 +601,7 @@ async function select(id) {
   document.getElementById("title").textContent = service.title;
   document.getElementById("subtitle").textContent = service.subtitle;
   document.getElementById("eyebrow").textContent = `SCC Platform · ${service.num}`;
+  renderSkeleton();
   const view = await service.load();
   state.live = view.live;
   setMode(view.live, service);
@@ -542,12 +647,44 @@ document.getElementById("stop-all").addEventListener("click", async () => {
   setTimeout(() => refresh(true), 800);
 });
 
-tick();
-setInterval(tick, 1000);
+document.getElementById("search").addEventListener("input", (event) => {
+  state.filter = event.target.value.trim().toLowerCase();
+  renderNav(state.active);
+});
+
+document.getElementById("export").addEventListener("click", () => exportCsv());
+
+document.getElementById("banner").addEventListener("click", async (event) => {
+  const startButton = event.target.closest("[data-start-service]");
+  const dismiss = event.target.closest("[data-dismiss-banner]");
+  if (startButton) {
+    showToast("Запускаю сервис…");
+    await window.scc?.services.start(startButton.dataset.service);
+    setTimeout(() => refresh(true), 3000);
+  }
+  if (dismiss) document.getElementById("banner").hidden = true;
+});
+
+window.addEventListener("keydown", (event) => {
+  const typing = ["INPUT", "TEXTAREA"].includes(event.target.tagName);
+  if (typing) return;
+  if (event.ctrlKey && event.key.toLowerCase() === "r") {
+    event.preventDefault();
+    refresh(false);
+    return;
+  }
+  const index = Number(event.key);
+  if (index >= 1 && index <= SERVICES.length) {
+    select(SERVICES[index - 1].id);
+  }
+});
+
 async function boot() {
   const overrides = await window.scc?.ports?.();
   if (overrides) Object.assign(PORTS, overrides);
   await select(state.active);
 }
 
+tick();
+setInterval(tick, 1000);
 boot();
