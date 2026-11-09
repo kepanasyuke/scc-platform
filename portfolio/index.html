@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
   <head>
     <meta charset="utf-8" />
@@ -350,6 +350,59 @@
         font-family: var(--mono);
       }
 
+      .marks {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+        gap: 12px;
+      }
+
+      .mark-card {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 16px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+      }
+
+      .mark-card__row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .mk {
+        display: grid;
+        place-items: center;
+        border-radius: 7px;
+      }
+
+      .mk svg {
+        width: 55%;
+        height: 55%;
+      }
+
+      .mk--l { width: 56px; height: 56px; }
+      .mk--m { width: 40px; height: 40px; }
+      .mk--s { width: 28px; height: 28px; }
+
+      .mk--red { background: var(--red); color: #fff; }
+      .mk--dark { background: var(--dark); color: #fff; }
+      .mk--plain { border: 1px solid var(--line); color: var(--red); border-radius: 6px; }
+
+      .mark-card strong {
+        font-size: 13px;
+      }
+
+      .mark-card__note {
+        font-size: 12px;
+        color: var(--text);
+      }
+
+      @media (max-width: 640px) {
+        .card__body { padding: 18px; }
+      }
       footer {
         display: flex;
         justify-content: space-between;
@@ -521,6 +574,53 @@
           <p>pg_stat_statements, рекомендации индексов, разбор логов дедлоков.</p>
           <div class="tile__meta"><span>:8108</span><span>postgres</span></div>
         </a>
+      </div>
+
+      <div class="section-title">
+        <h2>Варианты знака SCC</h2>
+        <span>для выбора финального</span>
+      </div>
+
+      <div class="marks">
+        <div class="mark-card">
+          <div class="mark-card__row">
+            <span class="mk mk--red mk--l"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 4.6h2.2l1.4 3.4-1.8 1.3a10 10 0 0 0 5.1 5.1l1.3-1.8 3.4 1.4v2.2a1.8 1.8 0 0 1-1.9 1.8A14.4 14.4 0 0 1 3.7 6.5a1.8 1.8 0 0 1 1.8-1.9Z"/><path d="M15.4 4.1a6.5 6.5 0 0 1 4.4 4.4"/><path d="M14.8 7.5a3.1 3.1 0 0 1 1.9 1.9"/></svg></span>
+            <span class="mk mk--dark mk--m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 4.6h2.2l1.4 3.4-1.8 1.3a10 10 0 0 0 5.1 5.1l1.3-1.8 3.4 1.4v2.2a1.8 1.8 0 0 1-1.9 1.8A14.4 14.4 0 0 1 3.7 6.5a1.8 1.8 0 0 1 1.8-1.9Z"/><path d="M15.4 4.1a6.5 6.5 0 0 1 4.4 4.4"/><path d="M14.8 7.5a3.1 3.1 0 0 1 1.9 1.9"/></svg></span>
+            <span class="mk mk--plain mk--s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 4.6h2.2l1.4 3.4-1.8 1.3a10 10 0 0 0 5.1 5.1l1.3-1.8 3.4 1.4v2.2a1.8 1.8 0 0 1-1.9 1.8A14.4 14.4 0 0 1 3.7 6.5a1.8 1.8 0 0 1 1.8-1.9Z"/><path d="M15.4 4.1a6.5 6.5 0 0 1 4.4 4.4"/><path d="M14.8 7.5a3.1 3.1 0 0 1 1.9 1.9"/></svg></span>
+          </div>
+          <strong>A · трубка и сигнал</strong>
+          <span class="mark-card__note">текущий: читается в 15px, прямо говорит про телефонию</span>
+        </div>
+
+        <div class="mark-card">
+          <div class="mark-card__row">
+            <span class="mk mk--red mk--l"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M17.5 7.5A6.5 6.5 0 1 0 17.5 16.5"/><path d="M12.5 7.5A6.5 6.5 0 0 1 12.5 16.5"/></svg></span>
+            <span class="mk mk--dark mk--m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M17.5 7.5A6.5 6.5 0 1 0 17.5 16.5"/><path d="M12.5 7.5A6.5 6.5 0 0 1 12.5 16.5"/></svg></span>
+            <span class="mk mk--plain mk--s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17.5 7.5A6.5 6.5 0 1 0 17.5 16.5"/><path d="M12.5 7.5A6.5 6.5 0 0 1 12.5 16.5"/></svg></span>
+          </div>
+          <strong>B · двойная C</strong>
+          <span class="mark-card__note">монограмма Call Center, строже, но без намёка на звонок</span>
+        </div>
+
+        <div class="mark-card">
+          <div class="mark-card__row">
+            <span class="mk mk--red mk--l"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12a8 8 0 0 1 8-8"/><path d="M8 12a4 4 0 0 1 4-4"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><path d="M12 16v4"/></svg></span>
+            <span class="mk mk--dark mk--m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12a8 8 0 0 1 8-8"/><path d="M8 12a4 4 0 0 1 4-4"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><path d="M12 16v4"/></svg></span>
+            <span class="mk mk--plain mk--s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12a8 8 0 0 1 8-8"/><path d="M8 12a4 4 0 0 1 4-4"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><path d="M12 16v4"/></svg></span>
+          </div>
+          <strong>C · волна вызова</strong>
+          <span class="mark-card__note">абстрактнее: подходит, если знак ставят рядом с текстом</span>
+        </div>
+
+        <div class="mark-card">
+          <div class="mark-card__row">
+            <span class="mk mk--red mk--l"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><path d="M4 13v3a2 2 0 0 0 2 2h1v-5H6a2 2 0 0 0-2 2Z"/><path d="M20 13v3a2 2 0 0 1-2 2h-1v-5h1a2 2 0 0 1 2 2Z"/><path d="M17 19a4 4 0 0 1-4 2"/></svg></span>
+            <span class="mk mk--dark mk--m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><path d="M4 13v3a2 2 0 0 0 2 2h1v-5H6a2 2 0 0 0-2 2Z"/><path d="M20 13v3a2 2 0 0 1-2 2h-1v-5h1a2 2 0 0 1 2 2Z"/><path d="M17 19a4 4 0 0 1-4 2"/></svg></span>
+            <span class="mk mk--plain mk--s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13a8 8 0 0 1 16 0"/><path d="M4 13v3a2 2 0 0 0 2 2h1v-5H6a2 2 0 0 0-2 2Z"/><path d="M20 13v3a2 2 0 0 1-2 2h-1v-5h1a2 2 0 0 1 2 2Z"/></svg></span>
+          </div>
+          <strong>D · гарнитура</strong>
+          <span class="mark-card__note">операторский контур, но мельче читается хуже трубки</span>
+        </div>
       </div>
 
       <footer>

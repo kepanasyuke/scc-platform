@@ -1,4 +1,4 @@
-const state = {
+﻿const state = {
   active: "cdr-ingest",
   live: false,
   timer: null,
@@ -98,6 +98,10 @@ const SERVICES = [
             tag(item.sla_met ? "в норме" : "нарушен", item.sla_met ? "ok" : "bad")
           ])
         },
+        charts: [
+          { type: "donut", title: "SLA за сутки", value: data.sla_percent, total: 100, tone: data.sla_percent > 95 ? "green" : "red", caption: "вызовы, отвеченные за 20 с" },
+          { type: "spark", title: "Длительность разговоров", values: records.map((item) => Number(item.talk_seconds) || 0), tone: "blue" }
+        ],
         side: [
           { title: "Конвейер", rows: [["Приём", "HTTP батч"], ["Валидация", "до записи"], ["Запись", "plpgsql upsert"], ["Партиция", "сутки"]] },
           { title: "Индексы", rows: [["BRIN", "started_at"], ["Partial", "sla_met = false"], ["GIN", "to_tsvector"]] }
@@ -150,6 +154,13 @@ const SERVICES = [
           ])
         },
         bars: buckets.map((bucket) => ({ label: bucket.hour.slice(0, 2), value: bucket.total })),
+        charts: [
+          { type: "donut", title: "SLA по всем очередям", value: data.sla, total: 100, tone: data.sla >= 90 ? "green" : "red", caption: "порог 90%" },
+          { type: "stack", title: "Отвечено / всего", segments: [
+            { label: "отвечено", value: data.answered, tone: "green" },
+            { label: "потеряно", value: Math.max(0, data.total - data.answered), tone: "red" }
+          ] }
+        ],
         side: [
           { title: "Расчёт", rows: [["ASA", "avg(wait)"], ["p95", "percentile_cont"], ["SLA", "wait ≤ 20 c"], ["Отказы", "answered_at is null"]] },
           { title: "TimescaleDB", rows: [["hourly_calls", "caggr 5 мин"], ["retention", "400 дней"], ["партиции", "1 сутки"]] }
@@ -195,6 +206,9 @@ const SERVICES = [
             tag(item.healthy ? "healthy" : "failed", item.healthy ? "ok" : "bad")
           ])
         },
+        charts: [
+          { type: "donut", title: "Доступность транков", value: data.healthy, total: Math.max(1, data.trunks), tone: "green", caption: "ответы 2xx на OPTIONS" }
+        ],
         side: [
           { title: "Проба", rows: [["Метод", "OPTIONS"], ["Транспорт", "UDP / TLS"], ["Таймаут", "3 с"], ["RTT", "от отправки"]] },
           { title: "FreeSWITCH", rows: [["sofia", "external"], ["profile", "mti-sip"], ["регистрация", "300 с"]] }
@@ -242,6 +256,10 @@ const SERVICES = [
             tag(`${fmt(item.sla_percent, 1)}%`, item.sla_percent >= 95 ? "ok" : "warn")
           ])
         },
+        charts: [
+          { type: "donut", title: "Агенты готовы", value: list.reduce((acc, item) => acc + item.ready, 0), total: Math.max(1, list.reduce((acc, item) => acc + item.ready + item.busy, 0)), tone: "green", caption: "свободны против занятых" },
+          { type: "stack", title: "Очереди", segments: list.map((item, index) => ({ label: item.queue, value: item.waiting, tone: ["red", "yellow", "blue", "purple"][index % 4] })) }
+        ],
         side: [
           { title: "Правила", rows: [["Приоритет", "VIP → FIFO"], ["Выбор агента", "меньше вызовов"], ["Навыки", "skill match"], ["Таймаут", "20 с"]] },
           { title: "Шина", rows: [["enqueue", "calls.queue.enqueue"], ["assign", "calls.queue.assign"]] }
@@ -509,7 +527,7 @@ function renderTable(table) {
   document.getElementById("table-hint").textContent = table.hint ?? "";
   const container = document.getElementById("table");
   if (!table.rows.length) {
-    container.innerHTML = `<div class="empty"><span>Нет данных за выбранный период</span></div>`;
+    container.innerHTML = illustrationEmpty();
     return;
   }
   const head = table.columns
@@ -554,19 +572,23 @@ function exportCsv() {
   window.scc?.export?.csv(name, lines.join("\n")).then((path) => showToast(path ? `CSV: ${path}` : "Экспорт недоступен"));
 }
 
-function renderSide(blocks, bars) {
-  const charts = bars?.length
-    ? `<div class="side-block">
-         <div class="side-block__title">Нагрузка по часам</div>
-         <div class="bars">
-           ${bars
-             .map((bar) => {
-               const peak = Math.max(...bars.map((item) => item.value), 1);
-               return `<div class="bars__item"><div class="bars__bar" style="height:${(bar.value / peak) * 100}%"></div><span class="bars__label">${bar.label}</span></div>`;
-             })
-             .join("")}
-         </div>
-       </div>`
+function renderSide(blocks, bars, charts) {
+  const visual = (charts ?? [])
+    .map((chart) => {
+      if (chart.type === "donut") {
+        return vizBlock(chart.title, vizDonut(chart.value, chart));
+      }
+      if (chart.type === "spark") {
+        return vizBlock(chart.title, vizSparkline(chart.values, chart));
+      }
+      if (chart.type === "stack") {
+        return vizBlock(chart.title, vizStack(chart.segments));
+      }
+      return "";
+    })
+    .join("");
+  const charts2 = bars?.length
+    ? vizBlock("Нагрузка по часам", vizBars(bars.map((bar) => ({ label: bar.label, value: bar.value }))))
     : "";
   const rows = (blocks ?? [])
     .map(
@@ -577,7 +599,7 @@ function renderSide(blocks, bars) {
       </div>`
     )
     .join("");
-  document.getElementById("side").innerHTML = charts + rows;
+  document.getElementById("side").innerHTML = visual + charts2 + rows;
 }
 
 function setMode(live, service) {
@@ -611,7 +633,7 @@ async function select(id) {
   setMode(view.live, service);
   renderKpis(view.kpis);
   renderTable(view.table);
-  renderSide(view.side, view.bars);
+  renderSide(view.side, view.bars, view.charts);
   clearInterval(state.timer);
   state.timer = setInterval(() => refresh(true), 6000);
 }
@@ -624,7 +646,7 @@ async function refresh(silent) {
   setMode(view.live, service);
   renderKpis(view.kpis);
   renderTable(view.table);
-  renderSide(view.side, view.bars);
+  renderSide(view.side, view.bars, view.charts);
   if (!silent) document.getElementById("refresh").blur();
 }
 
@@ -685,7 +707,7 @@ window.addEventListener("keydown", (event) => {
 
 function paintChrome() {
   document.getElementById("search-icon").innerHTML = icon("search", 14);
-  document.getElementById("banner-icon").innerHTML = icon("alert", 14);
+  document.getElementById("banner-icon").innerHTML = illustrationOffline();
   document.getElementById("refresh").innerHTML = `${icon("refresh", 14)}<span>Обновить</span>`;
   document.getElementById("export").innerHTML = `${icon("download", 13)}<span>CSV</span>`;
   document.getElementById("start-all").innerHTML = `${icon("play", 13)}<span>Запустить все</span>`;
