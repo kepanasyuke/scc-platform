@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src http://localhost:* http://127.0.0.1:*; style-src 'self' 'unsafe-inline'" />
+    <title>SCC Platform</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="titlebar">
+      <div class="titlebar__brand">
+        <span class="mark">SCC</span>
+        <span class="titlebar__text">
+          <strong>SCC Platform</strong>
+          <small>пульт телефонии · МТИ</small>
+        </span>
+      </div>
+      <div class="titlebar__status">
+        <span class="dot" id="live-dot"></span>
+        <span id="live-label">проверяю сервисы…</span>
+      </div>
+      <div class="titlebar__controls">
+        <button data-action="minimize" aria-label="Свернуть">—</button>
+        <button data-action="toggle" aria-label="Развернуть">□</button>
+        <button data-action="close" class="danger" aria-label="Закрыть">×</button>
+      </div>
+    </div>
+
+    <div class="workspace">
+      <aside class="sidebar">
+        <div class="sidebar__caption">сервисы</div>
+        <nav id="nav" class="nav"></nav>
+        <div class="sidebar__foot">
+          <button id="start-all" class="button button--brand">Запустить все</button>
+          <button id="stop-all" class="button">Остановить</button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="page-head">
+          <div>
+            <div class="page-head__eyebrow" id="eyebrow">SCC Platform</div>
+            <h1 id="title">Загрузка…</h1>
+            <p id="subtitle" class="page-head__subtitle"></p>
+          </div>
+          <div class="page-head__aside">
+            <span class="pill" id="mode-pill">демо</span>
+            <span class="pill pill--ghost" id="port-pill">:0000</span>
+            <button id="refresh" class="button">Обновить</button>
+          </div>
+        </header>
+
+        <section class="kpis" id="kpis"></section>
+
+        <section class="split">
+          <div class="panel">
+            <div class="panel__head">
+              <h2 id="table-title">Показатели</h2>
+              <span class="panel__hint" id="table-hint"></span>
+            </div>
+            <div class="panel__body" id="table"></div>
+          </div>
+          <div class="panel panel--aside">
+            <div class="panel__head">
+              <h2>Контур</h2>
+            </div>
+            <div class="panel__body" id="side"></div>
+          </div>
+        </section>
+
+        <footer class="footer">
+          <span>SCC Platform · Синергия · контур телефонии МТИ</span>
+          <span class="mono" id="clock"></span>
+        </footer>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

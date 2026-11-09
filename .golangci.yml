@@ -1,0 +1,131 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+  build-tags:
+    - integration
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - bodyclose
+    - cannylint
+    - contextcheck
+    - copyloopvar
+    - cyclop
+    - dupl
+    - durationcheck
+    - errorlint
+    - exhaustive
+    - forbidigo
+    - funlen
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - gomnd
+    - gosec
+    - lll
+    - makezero
+    - misspell
+    - mnd
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - noctx
+    - nolintlint
+    - paralleltest
+    - prealloc
+    - predeclared
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - stylecheck
+    - tenv
+    - testpackage
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - wastedassign
+    - whitespace
+    - wrapcheck
+    - wsl_v5
+
+linters-settings:
+  funlen:
+    lines: 12
+    statements: 6
+  cyclop:
+    max-complexity: 4
+  gocognit:
+    min-complexity: 4
+  gocyclo:
+    min-complexity: 4
+  nestif:
+    min-complexity: 2
+  lll:
+    line-length: 120
+  dupl:
+    threshold: 80
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  revive:
+    rules:
+      - name: early-return
+      - name: indent-error-flow
+      - name: unexported-return
+      - name: errorf
+      - name: context-as-argument
+      - name: datarace
+      - name: empty-block
+      - name: superfluous-else
+      - name: unused-parameter
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      - hugeParam
+      - whyNoLint
+  wrapcheck:
+    ignore-sigs:
+      - .Errorf(
+      - errors.New(
+      - errors.Join(
+  forbidigo:
+    forbid:
+      - pattern: "^fmt\\.Print.*$"
+        msg: используйте log/slog вместо fmt.Print
+      - pattern: "^time\\.Sleep$"
+        msg: используйте тикеры и контекст вместо time.Sleep
+  nolintlint:
+    require-explanation: true
+    require-specific: true
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - dupl
+        - funlen
+        - lll
+        - wrapcheck
+    - path: cmd/
+      linters:
+        - funlen
+        - gochecknoinits

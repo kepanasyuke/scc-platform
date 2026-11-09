@@ -1,0 +1,14 @@
+go 1.27
+
+use (
+	./shared/go
+	./tools/stylecheck
+	./projects/01-cdr-ingest/backend
+	./projects/02-call-analytics/backend
+	./projects/03-sip-probe/backend
+	./projects/04-queue-acd/backend
+	./projects/05-supervisor-alerts/backend
+	./projects/06-freeswitch-esl/backend
+	./projects/07-desk-phone-provisioning/backend
+	./projects/08-pg-doctor/backend
+)
