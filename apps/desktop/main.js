@@ -21,6 +21,7 @@ const children = new Map();
 let window = null;
 
 function createWindow() {
+  const iconPath = join(__dirname, "build", "icon.png");
   window = new BrowserWindow({
     width: 1460,
     height: 920,
@@ -30,6 +31,7 @@ function createWindow() {
     frame: false,
     backgroundColor: "#1c1c1c",
     title: "SCC Platform",
+    icon: existsSync(iconPath) ? iconPath : undefined,
     webPreferences: {
       preload: join(__dirname, "preload.js"),
       contextIsolation: true,

@@ -995,3 +995,30 @@ td.copyable:hover {
   width: 12px;
   height: 12px;
 }
+
+/* --- бренд-знак --- */
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--scc-red);
+  color: #fff;
+}
+
+.mark svg {
+  display: block;
+}
+
+.titlebar__text strong {
+  font-size: 13px;
+  letter-spacing: -0.005em;
+}
+
+.titlebar__text small {
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: #8b8b93;
+}

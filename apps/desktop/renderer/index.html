@@ -2,17 +2,23 @@
 <html lang="ru">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src http://localhost:* http://127.0.0.1:*; style-src 'self' 'unsafe-inline'" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; connect-src http://localhost:* http://127.0.0.1:*; style-src 'self' 'unsafe-inline'" />
     <title>SCC Platform</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="titlebar">
       <div class="titlebar__brand">
-        <span class="mark">SCC</span>
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5.5 4.6h2.2l1.4 3.4-1.8 1.3a10 10 0 0 0 5.1 5.1l1.3-1.8 3.4 1.4v2.2a1.8 1.8 0 0 1-1.9 1.8A14.4 14.4 0 0 1 3.7 6.5a1.8 1.8 0 0 1 1.8-1.9Z" />
+            <path d="M15.4 4.1a6.5 6.5 0 0 1 4.4 4.4" />
+            <path d="M14.8 7.5a3.1 3.1 0 0 1 1.9 1.9" />
+          </svg>
+        </span>
         <span class="titlebar__text">
           <strong>SCC Platform</strong>
-          <small>пульт телефонии · МТИ</small>
+          <small>Synergy Call Center · МТИ</small>
         </span>
       </div>
       <div class="titlebar__status">
