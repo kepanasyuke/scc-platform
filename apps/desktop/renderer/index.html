@@ -20,45 +20,51 @@
         <span id="live-label">проверяю сервисы…</span>
       </div>
       <div class="titlebar__controls">
-        <button data-action="minimize" aria-label="Свернуть">—</button>
-        <button data-action="toggle" aria-label="Развернуть">□</button>
-        <button data-action="close" class="danger" aria-label="Закрыть">×</button>
+        <button data-action="minimize" aria-label="Свернуть" title="Свернуть"></button>
+        <button data-action="toggle" aria-label="Развернуть" title="Развернуть"></button>
+        <button data-action="close" class="danger" aria-label="Закрыть" title="Закрыть"></button>
       </div>
     </div>
 
     <div class="workspace">
       <aside class="sidebar">
         <div class="sidebar__caption">сервисы</div>
-        <input id="search" class="search" type="search" placeholder="Поиск · 1–8" autocomplete="off" />
+        <div class="search">
+          <span class="search__icon" id="search-icon"></span>
+          <input id="search" class="search__input" type="search" placeholder="Поиск · 1–8" autocomplete="off" />
+        </div>
         <nav id="nav" class="nav"></nav>
         <div class="sidebar__foot">
-          <button id="start-all" class="button button--brand">Запустить все</button>
-          <button id="stop-all" class="button">Остановить</button>
+          <button id="start-all" class="button button--brand"></button>
+          <button id="stop-all" class="button"></button>
         </div>
       </aside>
 
       <main class="main">
         <div class="banner" id="banner" hidden>
           <div class="banner__text">
-            <strong>Сервис не отвечает</strong>
+            <strong><span id="banner-icon"></span>Сервис не отвечает</strong>
             <span>Показаны демо-данные. Поднимите бэкенд — экран переключится в live.</span>
           </div>
           <div class="banner__actions">
-            <button class="button button--brand" data-start-service>Запустить сервис</button>
+            <button class="button button--brand" data-start-service></button>
             <button class="button" data-dismiss-banner>Скрыть</button>
           </div>
         </div>
 
         <header class="page-head">
-          <div>
-            <div class="page-head__eyebrow" id="eyebrow">SCC Platform</div>
-            <h1 id="title">Загрузка…</h1>
-            <p id="subtitle" class="page-head__subtitle"></p>
+          <div class="page-head__main">
+            <span class="page-head__icon" id="page-icon"></span>
+            <div>
+              <div class="page-head__eyebrow" id="eyebrow">SCC Platform</div>
+              <h1 id="title">Загрузка…</h1>
+              <p id="subtitle" class="page-head__subtitle"></p>
+            </div>
           </div>
           <div class="page-head__aside">
             <span class="pill" id="mode-pill">демо</span>
             <span class="pill pill--ghost" id="port-pill">:0000</span>
-            <button id="refresh" class="button" title="Ctrl+R">Обновить</button>
+            <button id="refresh" class="button" title="Ctrl+R"></button>
           </div>
         </header>
 
@@ -70,7 +76,7 @@
               <h2 id="table-title">Показатели</h2>
               <div class="panel__tools">
                 <span class="panel__hint" id="table-hint"></span>
-                <button id="export" class="button button--compact" title="Скачать CSV">CSV</button>
+                <button id="export" class="button button--compact" title="Скачать CSV"></button>
               </div>
             </div>
             <div class="panel__body" id="table"></div>
@@ -92,6 +98,7 @@
 
     <div class="toast" id="toast" hidden></div>
 
+    <script src="icons.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

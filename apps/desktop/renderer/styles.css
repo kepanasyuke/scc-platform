@@ -846,3 +846,152 @@ td.copyable:hover {
   background: #b8b8be;
   background-clip: content-box;
 }
+
+/* --- иконки --- */
+
+.icon {
+  display: block;
+  flex: 0 0 auto;
+  stroke-width: 1.5;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.button .icon {
+  color: currentColor;
+  opacity: 0.85;
+}
+
+.button--icon {
+  padding: 6px 8px;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 1px solid var(--scc-line);
+  border-radius: var(--radius-s);
+  background: var(--scc-canvas);
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.search:focus-within {
+  background: var(--scc-surface);
+  border-color: var(--scc-red);
+}
+
+.search__icon {
+  display: flex;
+  color: var(--scc-muted);
+}
+
+.search__input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--scc-ink);
+  font-size: 12px;
+}
+
+.search__input:focus {
+  outline: none;
+}
+
+.search__input::placeholder {
+  color: var(--scc-muted);
+}
+
+.search__input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.nav__item {
+  gap: 8px;
+}
+
+.nav__icon {
+  display: flex;
+  color: var(--scc-muted);
+  transition: color 0.12s;
+}
+
+.nav__item:hover .nav__icon,
+.nav__item--active .nav__icon {
+  color: var(--scc-ink);
+}
+
+.nav__item--active .nav__icon {
+  color: var(--scc-red);
+}
+
+.nav__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.page-head__main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.page-head__icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-top: 3px;
+  border: 1px solid var(--scc-line);
+  border-radius: var(--radius-m);
+  background: var(--scc-surface);
+  color: var(--scc-red);
+}
+
+.page-head__icon .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.banner__text strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#banner-icon {
+  display: flex;
+  color: var(--scc-yellow);
+}
+
+.titlebar__controls button {
+  display: grid;
+  place-items: center;
+}
+
+.titlebar__controls .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.tag .icon,
+.pill .icon {
+  width: 12px;
+  height: 12px;
+}

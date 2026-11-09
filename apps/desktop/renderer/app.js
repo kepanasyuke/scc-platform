@@ -432,9 +432,12 @@ function renderNav(activeId) {
         .map(
           (service) => `
       <button class="nav__item ${service.id === activeId ? "nav__item--active" : ""}" data-id="${service.id}">
-        <span class="nav__dot" data-dot="${service.id}"></span>
-        <span>${service.title}</span>
-        <span class="nav__num">${service.num}</span>
+        <span class="nav__icon">${icon(SERVICE_ICONS[service.id])}</span>
+        <span class="nav__title">${service.title}</span>
+        <span class="nav__meta">
+          <span class="nav__dot" data-dot="${service.id}"></span>
+          <span class="nav__num">${service.num}</span>
+        </span>
       </button>`
         )
         .join("")
@@ -601,6 +604,7 @@ async function select(id) {
   document.getElementById("title").textContent = service.title;
   document.getElementById("subtitle").textContent = service.subtitle;
   document.getElementById("eyebrow").textContent = `SCC Platform · ${service.num}`;
+  document.getElementById("page-icon").innerHTML = icon(SERVICE_ICONS[service.id], 18);
   renderSkeleton();
   const view = await service.load();
   state.live = view.live;
@@ -679,12 +683,27 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
+function paintChrome() {
+  document.getElementById("search-icon").innerHTML = icon("search", 14);
+  document.getElementById("banner-icon").innerHTML = icon("alert", 14);
+  document.getElementById("refresh").innerHTML = `${icon("refresh", 14)}<span>Обновить</span>`;
+  document.getElementById("export").innerHTML = `${icon("download", 13)}<span>CSV</span>`;
+  document.getElementById("start-all").innerHTML = `${icon("play", 13)}<span>Запустить все</span>`;
+  document.getElementById("stop-all").innerHTML = `${icon("stop", 13)}<span>Остановить</span>`;
+  document.querySelector("[data-start-service]").innerHTML = `${icon("play", 13)}<span>Запустить сервис</span>`;
+  const controls = { minimize: "minimize", toggle: "maximize", close: "close" };
+  document.querySelectorAll(".titlebar__controls button").forEach((button) => {
+    button.innerHTML = icon(controls[button.dataset.action], 13);
+  });
+}
+
 async function boot() {
   const overrides = await window.scc?.ports?.();
   if (overrides) Object.assign(PORTS, overrides);
   await select(state.active);
 }
 
+paintChrome();
 tick();
 setInterval(tick, 1000);
 boot();
