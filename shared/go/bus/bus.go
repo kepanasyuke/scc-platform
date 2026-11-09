@@ -85,8 +85,8 @@ func (m *Memory) attach(pattern string, handler Handler) Unsubscribe {
 
 func (m *Memory) attached(pattern string, handler Handler, stop Unsubscribe) Unsubscribe {
 	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	m.handlers[pattern] = append(m.handlers[pattern], handler)
-	m.mutex.Unlock()
 	return stop
 }
 

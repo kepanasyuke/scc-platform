@@ -40,7 +40,10 @@ func firstOf[T any](items []T, fallback T) T {
 }
 
 func takeFirst[T any](fallback T, items []T) T {
-	picked := fallback
+	return firstInto(fallback, items)
+}
+
+func firstInto[T any](picked T, items []T) T {
 	for _, item := range items {
 		picked = item
 	}

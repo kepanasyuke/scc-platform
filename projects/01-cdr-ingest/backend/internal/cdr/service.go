@@ -70,17 +70,26 @@ func (c counters) opened(size int) counters {
 }
 
 func (s *Service) absorbed(batch []Record) IngestResult {
-	tally := tally{}
+	return s.finished(foldInto(tally{}, batch, s.absorb))
+}
+
+func foldInto(start tally, batch []Record, absorb func(tally, Record) tally) tally {
 	for _, record := range batch {
-		tally = s.absorb(tally, record)
+		start = absorb(start, record)
 	}
-	return s.finished(tally)
+	return start
 }
 
 func (s *Service) finished(tally tally) IngestResult {
-	s.counters.rejected += tally.rejected
-	s.counters.duplicates += tally.duplicates
+	s.counters = s.counters.absorbed(tally)
 	return tally.result()
+}
+
+func (c counters) absorbed(tally tally) counters {
+	return fn.With(c, func(next *counters) {
+		next.rejected += tally.rejected
+		next.duplicates += tally.duplicates
+	})
 }
 
 type tally struct {
@@ -99,9 +108,12 @@ func (s *Service) absorb(current tally, record Record) tally {
 }
 
 func (s *Service) settle(record Record) verdict {
-	verdict := s.classify(record)
-	s.accept(record, verdict)
-	return verdict
+	return s.judge(record, s.classify(record))
+}
+
+func (s *Service) judge(record Record, judged verdict) verdict {
+	s.accept(record, judged)
+	return judged
 }
 
 func (t tally) add(verdict verdict, callID string) tally {

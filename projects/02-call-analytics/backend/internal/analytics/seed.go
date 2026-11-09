@@ -3,6 +3,8 @@ package analytics
 import (
 	"math/rand"
 	"time"
+
+	"github.com/scc-platform/shared/fn"
 )
 
 var seedQueues = []string{"admission", "support", "callback", "exams"}
@@ -16,8 +18,8 @@ func SeedCalls(count int, day time.Time) []Call {
 }
 
 func seedInto(calls []Call, source *rand.Rand, day time.Time) []Call {
-	for len(calls) < cap(calls) {
-		calls = append(calls, buildCall(source, day, len(calls)))
+	for index := range cap(calls) {
+		calls = append(calls, buildCall(source, day, index))
 	}
 	return calls
 }
@@ -39,8 +41,5 @@ func callOf(source *rand.Rand, day time.Time, index int, wait float64, answered 
 }
 
 func answeredSeconds(source *rand.Rand, answered bool) float64 {
-	if answered {
-		return float64(source.Intn(420)) + source.Float64()
-	}
-	return 0
+	return fn.Lazy(answered, func() float64 { return float64(source.Intn(420)) + source.Float64() })
 }

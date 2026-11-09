@@ -70,13 +70,17 @@ func configXML(service *provision.Service) httpx.Handler {
 }
 
 func renderConfig(w http.ResponseWriter, err error, payload, mac string) error {
-	result := err
-	if err == nil {
-		w.Header().Set("Content-Type", "application/xml; charset=utf-8")
-		w.Header().Set("X-Device-MAC", mac)
-		result = httpx.WriteRaw(w, http.StatusOK, payload)
-	}
-	return result
+	return fn.Choose(err == nil, fn.Lazy(err == nil, func() error { return writeConfig(w, payload, mac) }), err)
+}
+
+func writeConfig(w http.ResponseWriter, payload, mac string) error {
+	configHeaders(w, mac)
+	return httpx.WriteRaw(w, http.StatusOK, payload)
+}
+
+func configHeaders(w http.ResponseWriter, mac string) {
+	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+	w.Header().Set("X-Device-MAC", mac)
 }
 
 func firstErr(errs ...error) error {

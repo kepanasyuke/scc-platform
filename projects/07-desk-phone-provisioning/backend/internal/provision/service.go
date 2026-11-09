@@ -28,7 +28,10 @@ func NewService(templates map[string]Template, devices []Device, accounts map[st
 }
 
 func indexDevices(devices []Device) map[string]Device {
-	index := make(map[string]Device, len(devices))
+	return indexInto(make(map[string]Device, len(devices)), devices)
+}
+
+func indexInto(index map[string]Device, devices []Device) map[string]Device {
 	for _, device := range devices {
 		index[device.MAC] = device
 	}
@@ -50,27 +53,41 @@ func (s *Service) deviceOf(mac string) Device {
 }
 
 func (s *Service) Register(mac, vendor, model, extension, location string) (Device, error) {
+	return s.registerDevice(mac, Device{Vendor: vendor, Model: model, Extension: extension, Location: location})
+}
+
+func (s *Service) registerDevice(mac string, device Device) (Device, error) {
 	normalized, err := NormalizeMAC(mac)
+	return s.registerNormalized(normalized, err, device)
+}
+
+func (s *Service) registerNormalized(mac string, err error, device Device) (Device, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	return s.registerLocked(normalized, err, Device{Vendor: vendor, Model: model, Extension: extension, Location: location})
+	return s.registerLocked(mac, err, device)
 }
 
 func (s *Service) registerLocked(mac string, err error, device Device) (Device, error) {
-	saved := device.withMAC(mac, s.lookup(mac))
-	savedErr := registrationErr(err, s.templateExists(device), s.extensionFree(device.Extension))
-	s.devices[mac] = saved
-	s.order = appendUnique(s.order, mac, savedErr == nil)
+	return s.save(device.withMAC(mac, s.lookup(mac)), registrationErr(err, s.templateExists(device), s.extensionFree(device.Extension)))
+}
+
+func (s *Service) save(saved Device, savedErr error) (Device, error) {
+	s.remember(saved, savedErr == nil)
 	return saved, savedErr
 }
 
+func (s *Service) remember(saved Device, ok bool) {
+	s.devices[saved.MAC] = saved
+	s.order = appendUnique(s.order, saved.MAC, ok)
+}
+
 func (d Device) withMAC(mac string, existing Device) Device {
-	next := d
-	next.MAC = mac
-	next.UpdatedAt = time.Now().UTC()
-	next.Firmware = chooseText(existing.Firmware, "2.0.0.0")
-	next.Provisioned = true
-	return next
+	return fn.With(d, func(next *Device) {
+		next.MAC = mac
+		next.UpdatedAt = time.Now().UTC()
+		next.Firmware = chooseText(existing.Firmware, "2.0.0.0")
+		next.Provisioned = true
+	})
 }
 
 func chooseText(value, fallback string) string {
@@ -78,15 +95,7 @@ func chooseText(value, fallback string) string {
 }
 
 func registrationErr(macErr error, known bool, free bool) error {
-	switch {
-	case macErr != nil:
-		return macErr
-	case !known:
-		return ErrUnknownTemplate
-	case !free:
-		return ErrAlreadyBound
-	}
-	return nil
+	return fn.Choose(macErr != nil, macErr, fn.Choose(!known, ErrUnknownTemplate, fn.Choose(!free, ErrAlreadyBound, nil)))
 }
 
 func (s *Service) templateExists(device Device) bool {
@@ -100,11 +109,7 @@ func (s *Service) lookup(mac string) Device {
 }
 
 func existingOf(known bool, existing Device) Device {
-	result := Device{}
-	if known {
-		result = existing
-	}
-	return result
+	return fn.Choose(known, existing, Device{})
 }
 
 func (s *Service) extensionFree(extension string) bool {
@@ -119,24 +124,21 @@ func appendUnique(items []string, item string, ok bool) []string {
 
 func (s *Service) Config(mac string) (string, Device, error) {
 	device, err := s.find(mac)
-	account := s.accountOf(device.Extension)
-	return s.render(device, account), device, err
+	return s.render(device, s.accountOf(device.Extension)), device, err
 }
 
 func (s *Service) find(mac string) (Device, error) {
 	normalized, normalErr := NormalizeMAC(mac)
+	return s.findDevice(normalized, normalErr)
+}
+
+func (s *Service) findDevice(normalized string, normalErr error) (Device, error) {
 	device, known := s.devices[normalized]
 	return device, chooseErr(normalErr, known)
 }
 
 func chooseErr(normalErr error, known bool) error {
-	switch {
-	case normalErr != nil:
-		return normalErr
-	case !known:
-		return ErrUnknownDevice
-	}
-	return nil
+	return fn.Choose(normalErr != nil, normalErr, fn.Choose(known, nil, ErrUnknownDevice))
 }
 
 func (s *Service) accountOf(extension string) Account {
@@ -145,17 +147,20 @@ func (s *Service) accountOf(extension string) Account {
 }
 
 func accountOr(known bool, account Account, extension string) Account {
-	result := Account{Extension: extension, Domain: "sip.mti.ru", Codec: "PCMU", Outbound: "sip.mti.ru:5060"}
-	if known {
-		result = account
-	}
-	return result
+	blank := Account{Extension: extension, Domain: "sip.mti.ru", Codec: "PCMU", Outbound: "sip.mti.ru:5060"}
+	return fn.Choose(known, account, blank)
 }
 
 func (s *Service) render(device Device, account Account) string {
-	template := s.templates[device.Vendor+"/"+device.Model]
-	render := defaultRender(template)
-	return render(device, account, s.server)
+	return renderOf(s.templateOf(device), device, account, s.server)
+}
+
+func (s *Service) templateOf(device Device) Template {
+	return s.templates[device.Vendor+"/"+device.Model]
+}
+
+func renderOf(template Template, device Device, account Account, server string) string {
+	return defaultRender(template)(device, account, server)
 }
 
 func defaultRender(template Template) func(Device, Account, string) string {

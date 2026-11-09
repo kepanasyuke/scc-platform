@@ -4,6 +4,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/scc-platform/shared/fn"
 	"github.com/scc-platform/shared/lists"
 )
 
@@ -68,9 +69,17 @@ func sortedKeys(groups map[string][]Call) []string {
 }
 
 func sortedStrings(keys []string, groups map[string][]Call) []string {
+	return sortedKeysOf(keysInto(keys, groups))
+}
+
+func keysInto(keys []string, groups map[string][]Call) []string {
 	for key := range groups {
 		keys = append(keys, key)
 	}
+	return keys
+}
+
+func sortedKeysOf(keys []string) []string {
 	sort.Strings(keys)
 	return keys
 }
@@ -121,8 +130,10 @@ func (s *Service) kpiOf(queue string, calls []Call) QueueKPI {
 }
 
 func (s *Service) kpiOfAnswered(queue string, calls, answered []Call) QueueKPI {
-	waits := lists.Map(answered, waitOf)
-	withinSLA := lists.Filter(answered, s.fastEnough)
+	return reportOf(queue, calls, answered, lists.Map(answered, waitOf), lists.Filter(answered, s.fastEnough))
+}
+
+func reportOf(queue string, calls, answered []Call, waits []float64, withinSLA []Call) QueueKPI {
 	return QueueKPI{
 		Queue:       queue,
 		Total:       len(calls),
@@ -186,7 +197,10 @@ func (s *Service) peakHour() Bucket {
 }
 
 func peakOfBucket(buckets []Bucket) Bucket {
-	peak := Bucket{}
+	return foldPeak(Bucket{}, buckets)
+}
+
+func foldPeak(peak Bucket, buckets []Bucket) Bucket {
 	for _, bucket := range buckets {
 		peak = pickPeak(peak, bucket)
 	}
@@ -194,8 +208,5 @@ func peakOfBucket(buckets []Bucket) Bucket {
 }
 
 func pickPeak(current, candidate Bucket) Bucket {
-	if candidate.Total > current.Total {
-		return candidate
-	}
-	return current
+	return fn.Choose(candidate.Total > current.Total, candidate, current)
 }

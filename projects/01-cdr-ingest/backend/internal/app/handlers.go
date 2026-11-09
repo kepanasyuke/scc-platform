@@ -30,9 +30,13 @@ type batchRequest struct {
 }
 
 func (h *handlers) ingest(w http.ResponseWriter, r *http.Request) error {
-	request := batchRequest{}
-	failed := httpx.Decode(r, &request)
+	request, failed := decodeBatch(r)
 	return writeOrFail(w, failed, h.ingested(r, request), http.StatusAccepted)
+}
+
+func decodeBatch(r *http.Request) (request batchRequest, failed error) {
+	failed = httpx.Decode(r, &request)
+	return
 }
 
 func (h *handlers) ingested(r *http.Request, request batchRequest) cdr.IngestResult {

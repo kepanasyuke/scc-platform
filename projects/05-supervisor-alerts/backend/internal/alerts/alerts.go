@@ -31,24 +31,19 @@ type Rule struct {
 	SilenceSec int     `json:"silence_sec"`
 }
 
+var ruleChecks = map[string]func(Rule, Metrics) bool{
+	"waiting":         func(rule Rule, metrics Metrics) bool { return float64(metrics.Waiting) > rule.Threshold },
+	"oldest_wait":     func(rule Rule, metrics Metrics) bool { return metrics.OldestWaitSec > rule.Threshold },
+	"sla":             func(rule Rule, metrics Metrics) bool { return metrics.SLAPercent < rule.Threshold },
+	"abandonment":     func(rule Rule, metrics Metrics) bool { return metrics.AbandonmentPct > rule.Threshold },
+	"trunk":           func(rule Rule, metrics Metrics) bool { return metrics.TrunkFailed },
+	"no_ready_agents": func(rule Rule, metrics Metrics) bool { return metrics.AgentsReady == 0 && rule.Threshold > 0 },
+	"channels":        func(rule Rule, metrics Metrics) bool { return float64(metrics.ActiveChannels) > rule.Threshold },
+}
+
 func (r Rule) Broken(metrics Metrics) bool {
-	switch r.Kind {
-	case "waiting":
-		return float64(metrics.Waiting) > r.Threshold
-	case "oldest_wait":
-		return metrics.OldestWaitSec > r.Threshold
-	case "sla":
-		return metrics.SLAPercent < r.Threshold
-	case "abandonment":
-		return metrics.AbandonmentPct > r.Threshold
-	case "trunk":
-		return metrics.TrunkFailed
-	case "no_ready_agents":
-		return metrics.AgentsReady == 0 && r.Threshold > 0
-	case "channels":
-		return float64(metrics.ActiveChannels) > r.Threshold
-	}
-	return false
+	check := ruleChecks[r.Kind]
+	return check != nil && check(r, metrics)
 }
 
 type Alert struct {
@@ -68,9 +63,7 @@ func (a Alert) Acknowledged() bool {
 }
 
 func (a Alert) Acknowledge(now time.Time) Alert {
-	next := a
-	next.AcknowledgedAt = now
-	return next
+	return fn.With(a, func(next *Alert) { next.AcknowledgedAt = now })
 }
 
 type Service struct {
@@ -94,38 +87,56 @@ func (s *Service) Rules() []Rule {
 }
 
 func (s *Service) Evaluate(metrics []Metrics) []Alert {
+	return s.publish(s.evaluateAll(metrics))
+}
+
+func (s *Service) evaluateAll(metrics []Metrics) []Alert {
 	s.mutex.Lock()
-	fresh := make([]Alert, 0, len(metrics))
+	defer s.mutex.Unlock()
+	return s.collectAlerts(metrics)
+}
+
+func (s *Service) collectAlerts(metrics []Metrics) (raised []Alert) {
 	for _, item := range metrics {
-		fresh = append(fresh, s.evaluateQueue(item)...)
+		raised = append(raised, s.evaluateQueue(item)...)
 	}
-	s.mutex.Unlock()
-	s.publish(fresh)
-	return fresh
+	return
 }
 
 func (s *Service) evaluateQueue(metrics Metrics) []Alert {
-	raised := make([]Alert, 0, len(s.rules))
-	for _, rule := range s.rules {
-		raised = appendAlert(raised, s.raise(rule, metrics))
-	}
-	return raised
+	return lists.Filter(lists.Map(s.rules, func(rule Rule) Alert { return s.raise(rule, metrics) }), raisedAlert)
 }
 
-func appendAlert(raised []Alert, alert Alert) []Alert {
-	return fn.Choose(alert.ID != "", append(raised, alert), raised)
+func raisedAlert(alert Alert) bool {
+	return alert.ID != ""
 }
 
 func (s *Service) raise(rule Rule, metrics Metrics) Alert {
-	alert := s.compose(rule, metrics)
-	silenced := s.silenced(rule.Name, metrics.Queue)
-	if rule.Broken(metrics) && !silenced {
-		s.seq++
-		alert.ID = fmt.Sprintf("a-%04d", s.seq)
-		s.alerts = append(s.alerts, alert)
-		s.silent[rule.Name+"|"+metrics.Queue] = s.now().Add(time.Duration(rule.SilenceSec) * time.Second)
-	}
+	return *s.record(rule, metrics, s.compose(rule, metrics))
+}
+
+func (s *Service) record(rule Rule, metrics Metrics, alert *Alert) *Alert {
+	fn.Do(rule.Broken(metrics) && !s.silenced(rule.Name, metrics.Queue), func() { s.stamp(rule, metrics, alert) })
 	return alert
+}
+
+func (s *Service) stamp(rule Rule, metrics Metrics, alert *Alert) {
+	alert.ID = s.nextID()
+	s.store(rule, metrics, *alert)
+}
+
+func (s *Service) nextID() string {
+	s.seq++
+	return fmt.Sprintf("a-%04d", s.seq)
+}
+
+func (s *Service) store(rule Rule, metrics Metrics, alert Alert) {
+	s.alerts = append(s.alerts, alert)
+	s.silent[keyOf(rule, metrics)] = s.now().Add(time.Duration(rule.SilenceSec) * time.Second)
+}
+
+func keyOf(rule Rule, metrics Metrics) string {
+	return rule.Name + "|" + metrics.Queue
 }
 
 func (s *Service) silenced(rule, queue string) bool {
@@ -133,8 +144,8 @@ func (s *Service) silenced(rule, queue string) bool {
 	return exists && until.After(s.now())
 }
 
-func (s *Service) compose(rule Rule, metrics Metrics) Alert {
-	return Alert{
+func (s *Service) compose(rule Rule, metrics Metrics) *Alert {
+	return &Alert{
 		Rule:      rule.Name,
 		Severity:  rule.Severity,
 		Subject:   metrics.Queue,
@@ -158,12 +169,13 @@ func values(metrics Metrics) map[string]string {
 	}
 }
 
-func (s *Service) publish(fresh []Alert) {
+func (s *Service) publish(fresh []Alert) []Alert {
 	for _, alert := range fresh {
 		if alert.ID != "" {
 			_ = s.hub.Publish("alerts.raised", []byte(alert.Rule))
 		}
 	}
+	return fresh
 }
 
 func (s *Service) Alerts(open bool) []Alert {
@@ -174,21 +186,31 @@ func (s *Service) Alerts(open bool) []Alert {
 
 func (s *Service) filterLocked(open bool) []Alert {
 	kept := lists.Filter(s.alerts, func(alert Alert) bool { return alert.Acknowledged() != open })
-	sorted := append(make([]Alert, 0, len(kept)), kept...)
-	sort.SliceStable(sorted, func(i, j int) bool { return sorted[i].CreatedAt.After(sorted[j].CreatedAt) })
-	return sorted
+	return sortedRecent(append(make([]Alert, 0, len(kept)), kept...))
+}
+
+func sortedRecent(alerts []Alert) []Alert {
+	sort.SliceStable(alerts, func(i, j int) bool { return alerts[i].CreatedAt.After(alerts[j].CreatedAt) })
+	return alerts
 }
 
 func (s *Service) Acknowledge(id string) (Alert, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	alert, found := lists.Find(s.alerts, func(item Alert) bool { return item.ID == id })
+	return alert, s.replaceAcknowledged(alert, found)
+}
+
+func (s *Service) replaceAcknowledged(alert Alert, found bool) error {
 	s.alerts = s.replace(s.alerts, alert.Acknowledge(s.now().UTC()), found)
-	return alert, acknowledgeErr(found)
+	return acknowledgeErr(found)
 }
 
 func (s *Service) replace(alerts []Alert, updated Alert, ok bool) []Alert {
-	next := make([]Alert, 0, len(alerts))
+	return foldReplaced(make([]Alert, 0, len(alerts)), alerts, updated, ok)
+}
+
+func foldReplaced(next []Alert, alerts []Alert, updated Alert, ok bool) []Alert {
 	for _, alert := range alerts {
 		next = appendReplaced(next, alert, updated, alert.ID == updated.ID, ok)
 	}
@@ -196,11 +218,7 @@ func (s *Service) replace(alerts []Alert, updated Alert, ok bool) []Alert {
 }
 
 func appendReplaced(next []Alert, alert, updated Alert, same bool, ok bool) []Alert {
-	chosen := alert
-	if same && ok {
-		chosen = updated
-	}
-	return append(next, chosen)
+	return append(next, fn.Choose(same && ok, updated, alert))
 }
 
 func acknowledgeErr(found bool) error {
@@ -208,9 +226,12 @@ func acknowledgeErr(found bool) error {
 }
 
 func (s *Service) Stats() Stats {
-	alerts := s.Alerts(false)
+	return statsOf(s.Alerts(false), len(s.rules))
+}
+
+func statsOf(alerts []Alert, rules int) Stats {
 	critical := lists.Filter(alerts, func(alert Alert) bool { return alert.Severity == "critical" })
-	return Stats{Open: len(alerts), Critical: len(critical), Rules: len(s.rules)}
+	return Stats{Open: len(alerts), Critical: len(critical), Rules: rules}
 }
 
 type Stats struct {

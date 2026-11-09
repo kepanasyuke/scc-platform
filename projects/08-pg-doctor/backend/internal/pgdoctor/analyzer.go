@@ -67,8 +67,10 @@ type Analysis struct {
 }
 
 func Analyze(samples []Sample, deadlocks []Deadlock) Analysis {
-	recommendations := collectRecommendations(samples)
-	worst := worstSamples(samples, 5)
+	return buildAnalysis(samples, deadlocks, collectRecommendations(samples), worstSamples(samples, 5))
+}
+
+func buildAnalysis(samples []Sample, deadlocks []Deadlock, recommendations []Recommendation, worst []Sample) Analysis {
 	return Analysis{
 		Samples:         len(samples),
 		SlowQueries:     len(lists.Filter(samples, func(sample Sample) bool { return sample.MeanMs > 200 })),
@@ -85,43 +87,51 @@ func sumMean(samples []Sample) float64 {
 }
 
 func worstSamples(samples []Sample, limit int) []Sample {
-	ordered := append(make([]Sample, 0, len(samples)), samples...)
+	return orderedWorst(append(make([]Sample, 0, len(samples)), samples...), limit)
+}
+
+func orderedWorst(ordered []Sample, limit int) []Sample {
 	sort.SliceStable(ordered, func(i, j int) bool { return ordered[i].Cost() > ordered[j].Cost() })
-	bound := min(limit, len(ordered))
-	return ordered[:bound]
+	return ordered[:min(limit, len(ordered))]
 }
 
 func health(recommendations []Recommendation) string {
 	critical := lists.Filter(recommendations, func(item Recommendation) bool { return item.Severity == "critical" })
-	switch {
-	case len(critical) > 0:
-		return "critical"
-	case len(recommendations) > 0:
-		return "warning"
-	}
-	return "ok"
+	return healthOf(len(critical) > 0, len(recommendations) > 0)
+}
+
+func healthOf(hasCritical, hasAny bool) string {
+	return fn.Choose(hasCritical, "critical", fn.Choose(hasAny, "warning", "ok"))
 }
 
 func collectRecommendations(samples []Sample) []Recommendation {
-	items := make([]Recommendation, 0, len(samples))
-	for _, sample := range samples {
-		items = append(items, recommend(sample))
-	}
-	kept := lists.Filter(items, func(item Recommendation) bool { return item.Problem != "" })
-	sort.SliceStable(kept, func(i, j int) bool { return kept[i].Score > kept[j].Score })
-	return kept
+	return ranked(lists.Filter(lists.Map(samples, recommend), func(item Recommendation) bool { return item.Problem != "" }))
+}
+
+func ranked(items []Recommendation) []Recommendation {
+	sort.SliceStable(items, func(i, j int) bool { return items[i].Score > items[j].Score })
+	return items
 }
 
 func recommend(sample Sample) Recommendation {
-	switch {
-	case sample.SeqShare() > 70 && sample.Calls > 10:
-		return seqScanAdvice(sample)
-	case sample.MeanMs > 800:
-		return slowQueryAdvice(sample)
-	case sample.RowsPerCall() > 500:
-		return fatScanAdvice(sample)
-	}
-	return Recommendation{}
+	return chooseAdvice(sample, seqScanCase(sample), slowQueryCase(sample), fatScanCase(sample))
+}
+
+func chooseAdvice(sample Sample, seqScan, slowQuery, fatScan bool) Recommendation {
+	slowOrFat := fn.Choose(slowQuery, slowQueryAdvice(sample), fn.Choose(fatScan, fatScanAdvice(sample), Recommendation{}))
+	return fn.Choose(seqScan, seqScanAdvice(sample), slowOrFat)
+}
+
+func seqScanCase(sample Sample) bool {
+	return sample.SeqShare() > 70 && sample.Calls > 10
+}
+
+func slowQueryCase(sample Sample) bool {
+	return sample.MeanMs > 800
+}
+
+func fatScanCase(sample Sample) bool {
+	return sample.RowsPerCall() > 500
 }
 
 func seqScanAdvice(sample Sample) Recommendation {
@@ -137,15 +147,21 @@ func seqScanAdvice(sample Sample) Recommendation {
 }
 
 func indexSuggestion(sample Sample) string {
-	columns := strings.Split(sample.Plan, "::")
-	target := columns[len(columns)-1]
+	target := lastColumn(sample.Plan)
 	return fmt.Sprintf("CREATE INDEX CONCURRENTLY idx_%s_%s ON %s (%s) WHERE ...", sample.Table, sanitize(target), sample.Table, target)
 }
 
+func lastColumn(plan string) string {
+	columns := strings.Split(plan, "::")
+	return columns[len(columns)-1]
+}
+
 func sanitize(value string) string {
-	clean := strings.TrimSpace(value)
-	clean = strings.NewReplacer(" ", "_", ",", "_", "(", "", ")", "").Replace(clean)
-	return strings.ToLower(clean)
+	return strings.ToLower(cleanTarget(strings.TrimSpace(value)))
+}
+
+func cleanTarget(clean string) string {
+	return strings.NewReplacer(" ", "_", ",", "_", "(", "", ")", "").Replace(clean)
 }
 
 func slowQueryAdvice(sample Sample) Recommendation {
@@ -186,7 +202,14 @@ func ratio(part, total int64) float64 {
 
 func ParseDeadlockLog(entry string) Deadlock {
 	lines := strings.Split(entry, "\n")
-	parsed := Deadlock{At: firstLine(lines), Advice: adviceFor(entry)}
+	return absorbLines(startDeadlock(lines, entry), lines)
+}
+
+func startDeadlock(lines []string, entry string) Deadlock {
+	return Deadlock{At: firstLine(lines), Advice: adviceFor(entry)}
+}
+
+func absorbLines(parsed Deadlock, lines []string) Deadlock {
 	for _, line := range lines {
 		parsed = parsed.absorb(line)
 	}
@@ -198,12 +221,12 @@ func firstLine(lines []string) string {
 }
 
 func (d Deadlock) absorb(line string) Deadlock {
-	next := d
-	next.Victim = pick(next.Victim, line, "process", "is the deadlock victim")
-	next.WaitsFor = pick(next.WaitsFor, line, "waits for", "on transaction")
-	next.LockType = pick(next.LockType, line, "waits for", "lock on")
-	next.Relation = pick(next.Relation, line, "relation", "of relation")
-	return next
+	return fn.With(d, func(next *Deadlock) {
+		next.Victim = pick(next.Victim, line, "process", "is the deadlock victim")
+		next.WaitsFor = pick(next.WaitsFor, line, "waits for", "on transaction")
+		next.LockType = pick(next.LockType, line, "waits for", "lock on")
+		next.Relation = pick(next.Relation, line, "relation", "of relation")
+	})
 }
 
 func pick(current, line, anchor, tail string) string {
@@ -216,14 +239,26 @@ func trimTail(value, tail string) string {
 	return strings.TrimSpace(head)
 }
 
+type adviceRule struct {
+	match  func(string) bool
+	advice string
+}
+
+var deadlockAdvice = []adviceRule{
+	{match: shareLocked, advice: "упорядочить захват блокировок: сначала agents, затем queues"},
+	{match: func(entry string) bool { return strings.Contains(entry, "tuple") }, advice: "сократить транзакцию и вынести вычисления до UPDATE"},
+	{match: func(entry string) bool { return strings.Contains(entry, "relation") }, advice: "использовать CONCURRENTLY для DDL вне окна нагрузки"},
+}
+
+func shareLocked(entry string) bool {
+	return strings.Contains(entry, "ShareLock") && strings.Contains(entry, "transaction")
+}
+
 func adviceFor(entry string) string {
-	switch {
-	case strings.Contains(entry, "ShareLock") && strings.Contains(entry, "transaction"):
-		return "упорядочить захват блокировок: сначала agents, затем queues"
-	case strings.Contains(entry, "tuple"):
-		return "сократить транзакцию и вынести вычисления до UPDATE"
-	case strings.Contains(entry, "relation"):
-		return "использовать CONCURRENTLY для DDL вне окна нагрузки"
-	}
-	return "повторить транзакцию с экспоненциальной задержкой"
+	return adviceOf(deadlockAdvice, entry)
+}
+
+func adviceOf(rules []adviceRule, entry string) string {
+	matched, found := lists.Find(rules, func(rule adviceRule) bool { return rule.match(entry) })
+	return fn.Choose(found, matched.advice, "повторить транзакцию с экспоненциальной задержкой")
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/scc-platform/shared/fn"
 	"net/http"
 	"runtime/debug"
+	"slices"
 	"time"
 )
 
@@ -18,11 +19,10 @@ func Chain(handler http.Handler, middlewares ...Middleware) http.Handler {
 }
 
 func wrapInto(handler http.Handler, middlewares []Middleware) http.Handler {
-	wrapped := handler
-	for index := len(middlewares) - 1; index >= 0; index-- {
-		wrapped = middlewares[index](wrapped)
+	for _, middleware := range slices.Backward(middlewares) {
+		handler = middleware(handler)
 	}
-	return wrapped
+	return handler
 }
 
 func FailOnError(handler Handler) http.HandlerFunc {

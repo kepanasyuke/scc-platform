@@ -50,7 +50,10 @@ func macErr(clean string) error {
 }
 
 func isHex(value string) bool {
-	valid := true
+	return hexInto(true, value)
+}
+
+func hexInto(valid bool, value string) bool {
 	for _, symbol := range value {
 		valid = valid && isHexSymbol(symbol)
 	}
@@ -58,9 +61,7 @@ func isHex(value string) bool {
 }
 
 func isHexSymbol(symbol rune) bool {
-	digit := symbol >= '0' && symbol <= '9'
-	letter := symbol >= 'a' && symbol <= 'f'
-	return digit || letter
+	return (symbol >= '0' && symbol <= '9') || (symbol >= 'a' && symbol <= 'f')
 }
 
 func YealinkXML(device Device, account Account, server string) string {
